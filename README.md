@@ -1,1 +1,1 @@
-# freelance-chore-app
+# newchore-be

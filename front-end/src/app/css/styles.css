@@ -1,6 +1,0 @@
-body {
-  --secondary: #1d2a3b;
-}
-.secondary {
-  background-color: var(--secondary);
-}
