@@ -9,6 +9,7 @@ const jwt = require("jsonwebtoken");
 const withAuth = require("./middleware/withAuth");
 require("dotenv").config();
 const io = require("socket.io")(3001, {
+  transports: ["websocket"],
   maxHttpBufferSize: 1e7,
   cors: {
     origin: "http://localhost:3000",
@@ -345,46 +346,46 @@ app.post("/findRoom", async (req, res) => {
 
 app.post("/loadPrivateRooms", async (req, res) => {
   try {
-      const limit = 10;
-      const rooms = await RoomModel.find({ "users.userId": req.userId })
+    const limit = 10;
+    const rooms = await RoomModel.find({ "users.userId": req.userId })
       .limit(limit)
-      .select("name users messages"); 
-      const newList = rooms.map(async (item) => {
-          const withProfilePictureAndUsername = item.users.map(async (item) => {
-              const user = await UserModel.findOne({
-                  _id: item.userId,
-                });
-                console.log(user)
-                return {
-                    userId: item.userId,
-                    profilePicture: user ? user.profilePicture : "",
-                    username: user ? user.username:"",
-                };
-            });
-            const usersWithProfilePictureAndUsername = await Promise.all(
-                withProfilePictureAndUsername
-                );
-                const lastMessage = item.messages[item.messages.length - 1];
-                const formattedSentTime =
-                (lastMessage.sent.getHours().toString().length == 1
-                ? "0".concat(lastMessage.sent.getHours().toString())
-                : lastMessage.sent.getHours().toString()) +
-                ":" +
-                (lastMessage.sent.getMinutes().toString().length == 1
-                ? "0".concat(lastMessage.sent.getMinutes().toString())
-                : lastMessage.sent.getMinutes().toString());
-                lastMessage.sent = formattedSentTime;
-                return {
-                    name: item.name,
-                    lastMessage: {
-                        sender: lastMessage.sender,
-                        content: lastMessage.content,
-                        sent: formattedSentTime,
-                        seenBy: lastMessage.seenBy.map((item) => item.userId),
-                    },
-                    users: usersWithProfilePictureAndUsername,
-                };
-            });
+      .select("name users messages");
+    const newList = rooms.map(async (item) => {
+      const withProfilePictureAndUsername = item.users.map(async (item) => {
+        const user = await UserModel.findOne({
+          _id: item.userId,
+        });
+        console.log(user);
+        return {
+          userId: item.userId,
+          profilePicture: user ? user.profilePicture : "",
+          username: user ? user.username : "",
+        };
+      });
+      const usersWithProfilePictureAndUsername = await Promise.all(
+        withProfilePictureAndUsername
+      );
+      const lastMessage = item.messages[item.messages.length - 1];
+      const formattedSentTime =
+        (lastMessage.sent.getHours().toString().length == 1
+          ? "0".concat(lastMessage.sent.getHours().toString())
+          : lastMessage.sent.getHours().toString()) +
+        ":" +
+        (lastMessage.sent.getMinutes().toString().length == 1
+          ? "0".concat(lastMessage.sent.getMinutes().toString())
+          : lastMessage.sent.getMinutes().toString());
+      lastMessage.sent = formattedSentTime;
+      return {
+        name: item.name,
+        lastMessage: {
+          sender: lastMessage.sender,
+          content: lastMessage.content,
+          sent: formattedSentTime,
+          seenBy: lastMessage.seenBy.map((item) => item.userId),
+        },
+        users: usersWithProfilePictureAndUsername,
+      };
+    });
     const roomsWithProfilePictures = await Promise.all(newList);
     res.status(200).json({ rooms: roomsWithProfilePictures });
   } catch (err) {
